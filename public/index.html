@@ -156,19 +156,13 @@ canvas.line-canvas  { position: absolute; top: 0; left: 0; pointer-events: none;
 /* ── 輪到你了 Banner ── */
 .my-turn-banner {
   font-family: 'Permanent Marker', cursive;
-  font-size: 1.8rem;
-  color: var(--accent3);
-  text-shadow: 3px 3px 0 var(--dark);
+  font-size: 1.6rem;
+  color: var(--dark);
   text-align: center;
-  animation: turnPulse 0.7s ease-in-out infinite;
   display: none;
   width: 100%;
 }
 .my-turn-banner.show { display: block; }
-@keyframes turnPulse {
-  0%,100% { transform: scale(1);   opacity: 1; }
-  50%      { transform: scale(1.06); opacity: 0.8; }
-}
 
 /* ── Modal ── */
 .modal-overlay {
@@ -420,7 +414,10 @@ function renderWaitingList(namesMap, count) {
         let debounce;
         inp.oninput = () => {
           clearTimeout(debounce);
-          debounce = setTimeout(() => send({ type: 'set_name', name: inp.value }), 300);
+          debounce = setTimeout(() => {
+            if (inp.value.trim() === '') return; // 空白不送，繼續讓用戶打字
+            send({ type: 'set_name', name: inp.value });
+          }, 300);
         };
         row.appendChild(inp);
         const badge = document.createElement('div');

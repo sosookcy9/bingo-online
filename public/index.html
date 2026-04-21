@@ -153,6 +153,23 @@ body {
 canvas.board-canvas { display: block; border-radius: 10px; }
 canvas.line-canvas  { position: absolute; top: 0; left: 0; pointer-events: none; border-radius: 10px; }
 
+/* ── 輪到你了 Banner ── */
+.my-turn-banner {
+  font-family: 'Permanent Marker', cursive;
+  font-size: 1.8rem;
+  color: var(--accent3);
+  text-shadow: 3px 3px 0 var(--dark);
+  text-align: center;
+  animation: turnPulse 0.7s ease-in-out infinite;
+  display: none;
+  width: 100%;
+}
+.my-turn-banner.show { display: block; }
+@keyframes turnPulse {
+  0%,100% { transform: scale(1);   opacity: 1; }
+  50%      { transform: scale(1.06); opacity: 0.8; }
+}
+
 /* ── Modal ── */
 .modal-overlay {
   position: fixed; inset: 0; background: #2a202099;
@@ -218,6 +235,7 @@ canvas.line-canvas  { position: absolute; top: 0; left: 0; pointer-events: none;
     </div>
     <div class="scores-strip" id="scores-strip"></div>
   </div>
+  <div class="my-turn-banner" id="turn-banner">輪到你了！</div>
   <div class="board-wrap">
     <div class="board-label" id="my-label" style="color:var(--accent2)">你</div>
     <div class="board-canvas-wrap">
@@ -309,7 +327,7 @@ function handleMsg(msg) {
 
     case 'start':
       myBoard     = msg.myBoard;
-      myMark      = Array(N).fill(false);  // 全部重設，server 是來源
+      myMark      = Array(N).fill(false);
       roles       = msg.roles;
       names       = msg.names;
       scores      = msg.scores;
@@ -328,7 +346,6 @@ function handleMsg(msg) {
       break;
 
     case 'update':
-      // 完全以 server 資料為準，client 不自行推算
       myMark      = msg.marks[myRole];
       lines       = msg.lines;
       scores      = msg.scores;
@@ -340,6 +357,7 @@ function handleMsg(msg) {
       renderLines();
       if (msg.winner) {
         gameOver = true; canCall = false;
+        document.getElementById('turn-banner').classList.remove('show');
         setTimeout(() => showWinModal(msg.winner, msg.lines), 600);
       } else {
         setStatus();
@@ -356,6 +374,7 @@ function handleMsg(msg) {
       names = msg.names || names;
       if (currentScreen() === 'game-screen') {
         gameOver = true; canCall = false;
+        document.getElementById('turn-banner').classList.remove('show');
         setStatus('有玩家離開，遊戲結束');
       } else {
         renderWaitingList(names, msg.remaining);
@@ -459,7 +478,7 @@ function leaveRoom() {
 // ════════════════════════════════════════
 function callNum(num) {
   if (!canCall || gameOver) return;
-  canCall = false; // 防止重複送，等 server update 回來
+  canCall = false;
   send({ type: 'call', num });
 }
 
@@ -621,12 +640,23 @@ function showCalledNum(num) {
 }
 
 function setStatus(msg) {
-  const el = document.getElementById('status');
-  if (msg) { el.textContent = msg; return; }
-  if (gameOver) { el.textContent = '遊戲結束'; return; }
+  const el     = document.getElementById('status');
+  const banner = document.getElementById('turn-banner');
+  if (msg) {
+    el.textContent = msg;
+    banner.classList.remove('show');
+    return;
+  }
+  if (gameOver) {
+    el.textContent = '遊戲結束';
+    banner.classList.remove('show');
+    return;
+  }
   if (currentTurn === myRole) {
-    el.textContent = '點選你的號碼';
+    el.textContent = '';
+    banner.classList.add('show');
   } else {
+    banner.classList.remove('show');
     el.textContent = `等待 ${names[currentTurn] || currentTurn || '—'}…`;
   }
 }

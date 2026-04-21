@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>賓果</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Noto+Sans+TC:wght@400;700;900&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #f5f0e8;
+  --dark:    #2a2020;
+  --muted:   #9a8e7a;
+  --accent1: #ff6b6b;
+  --accent2: #4ecdc4;
+  --accent3: #f7c948;
+  --accent4: #a78bfa;
+  --card:    #fffdf7;
+  --shadow:  #c8bfa8;
+}
+
+body {
+  background: var(--bg);
+  font-family: 'Noto Sans TC', sans-serif;
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 12px;
+  background-image: radial-gradient(#d4c9a8 1px, transparent 1px);
+  background-size: 28px 28px;
+  overflow-x: hidden;
+}
+
+/* ── Screens ── */
+.screen { display: none; width: 100%; max-width: 360px; flex-direction: column; align-items: center; gap: 12px; }
+.screen.active { display: flex; }
+
+/* ── Logo ── */
+.logo {
+  font-family: 'Permanent Marker', cursive;
+  font-size: 3rem; color: var(--dark);
+  text-shadow: 4px 4px 0 var(--shadow);
+  letter-spacing: 0.06em;
+}
+.logo span { color: var(--accent1); }
+
+/* ── Card ── */
+.card {
+  background: var(--card);
+  border: 2px solid var(--dark);
+  border-radius: 16px;
+  padding: 20px;
+  width: 100%;
+  box-shadow: 4px 4px 0 var(--dark);
+}
+.card-title {
+  font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 10px;
+}
+
+/* ── Inputs ── */
+.input {
+  width: 100%; padding: 10px 14px;
+  border: 2px solid var(--dark); border-radius: 10px;
+  background: var(--bg); font-family: 'Noto Sans TC', sans-serif;
+  font-size: 1rem; font-weight: 700; color: var(--dark);
+  outline: none; transition: border-color 0.15s;
+}
+.input:focus { border-color: var(--accent2); }
+.input.code-input { text-transform: uppercase; text-align: center; font-size: 1.3rem; letter-spacing: 0.3em; }
+
+/* ── Buttons ── */
+.btn {
+  font-family: 'Noto Sans TC', sans-serif; font-size: 0.75rem; font-weight: 700;
+  padding: 10px 20px; border-radius: 10px; border: 2px solid var(--dark);
+  cursor: pointer; background: var(--dark); color: var(--bg);
+  box-shadow: 3px 3px 0 var(--dark); transition: all 0.12s;
+  letter-spacing: 0.05em; white-space: nowrap;
+}
+.btn:hover  { transform: translate(-1px,-1px); box-shadow: 4px 4px 0 var(--dark); }
+.btn:active { transform: translate(2px,2px);  box-shadow: 1px 1px 0 var(--dark); }
+.btn.accent { background: var(--accent2); color: var(--dark); border-color: var(--dark); }
+.btn.danger { background: var(--accent1); color: #fff; border-color: var(--dark); }
+.btn.full   { width: 100%; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: 3px 3px 0 var(--dark) !important; }
+
+.err-txt { font-size: 0.62rem; color: var(--accent1); font-weight: 700; min-height: 16px; text-align: center; }
+
+/* ── Waiting room ── */
+.waiting-title { font-family: 'Permanent Marker', cursive; font-size: 1.4rem; color: var(--dark); text-align: center; }
+.room-code {
+  font-family: 'Permanent Marker', cursive;
+  font-size: 2rem; color: var(--accent2);
+  letter-spacing: 0.3em; text-align: center;
+  background: var(--dark); padding: 6px 20px; border-radius: 10px;
+}
+.player-list { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.player-row {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg); border: 2px solid var(--dark);
+  border-radius: 10px; padding: 7px 12px;
+}
+.player-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.player-name-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-family: 'Noto Sans TC', sans-serif; font-size: 0.8rem; font-weight: 700; color: var(--dark);
+}
+.player-name-input::placeholder { color: var(--muted); }
+.player-name-static { flex: 1; font-size: 0.8rem; font-weight: 700; color: var(--dark); }
+.player-badge { font-size: 0.45rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+.waiting-hint { font-size: 0.6rem; color: var(--muted); text-align: center; }
+.pulse { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── Game ── */
+#game-screen { max-width: 400px; gap: 8px; }
+
+.middle-bar {
+  width: 100%; background: var(--dark); border-radius: 14px;
+  padding: 8px 12px; display: flex; align-items: center; gap: 8px;
+}
+.center-col {
+  display: flex; flex-direction: column; align-items: center;
+  flex: 0 0 auto; min-width: 54px;
+}
+.called-label { font-size: 0.42rem; color: #888; letter-spacing: 0.2em; text-transform: uppercase; }
+.called-num {
+  font-family: 'Permanent Marker', cursive; font-size: 1.8rem;
+  color: var(--bg); line-height: 1; text-align: center; transition: transform 0.18s;
+}
+.status-txt { font-size: 0.48rem; color: #aaa; text-align: center; min-height: 13px; }
+
+.scores-strip { display: flex; flex: 1; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.scores-strip::-webkit-scrollbar { display: none; }
+.score-chip {
+  display: flex; flex-direction: column; align-items: center;
+  background: #3a3030; border-radius: 8px;
+  padding: 4px 8px; min-width: 52px; flex-shrink: 0;
+  transition: outline 0.15s;
+}
+.score-chip.is-turn { outline: 2px solid var(--accent3); background: #4a4030; }
+.chip-name { font-size: 0.48rem; color: #aaa; font-weight: 700; max-width: 54px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-lines { font-family: 'Permanent Marker', cursive; font-size: 1rem; line-height: 1.1; }
+.chip-unit  { font-family: 'Noto Sans TC', sans-serif; font-size: 0.42rem; color: #777; }
+.chip-score { font-size: 0.42rem; color: #666; }
+
+.board-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
+.board-label { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
+.board-canvas-wrap { position: relative; border-radius: 10px; box-shadow: 0 2px 10px #0002, 3px 3px 0 var(--shadow); }
+canvas.board-canvas { display: block; border-radius: 10px; }
+canvas.line-canvas  { position: absolute; top: 0; left: 0; pointer-events: none; border-radius: 10px; }
+
+/* ── Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: #2a202099;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+}
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--bg); border: 3px solid var(--dark); border-radius: 16px;
+  padding: 28px 32px; text-align: center; box-shadow: 6px 6px 0 var(--dark);
+  transform: scale(0.85); transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
+  max-width: 300px; width: 90%;
+}
+.modal-overlay.show .modal { transform: scale(1); }
+.modal-title { font-family: 'Permanent Marker', cursive; font-size: 2rem; color: var(--dark); margin-bottom: 4px; }
+.modal-sub   { font-size: 0.75rem; color: var(--muted); margin-bottom: 18px; line-height: 1.8; white-space: pre-line; }
+.modal-btns  { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+/* Role colors */
+.dot-p1 { background: var(--accent1); }
+.dot-p2 { background: var(--accent2); }
+.dot-p3 { background: var(--accent3); }
+.dot-p4 { background: var(--accent4); }
+</style>
+</head>
+<body>
+
+<!-- ══ LOBBY ══ -->
+<div class="screen active" id="lobby-screen">
+  <div class="logo">Bin<span>Go</span></div>
+  <div class="card">
+    <div class="card-title">加入 / 建立房間</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <input class="input code-input" id="room-input" placeholder="ABCD" maxlength="6"
+             onkeydown="if(event.key==='Enter')joinRoom()">
+      <button class="btn accent" onclick="joinRoom()">進入</button>
+    </div>
+    <div class="err-txt" id="lobby-err"></div>
+  </div>
+</div>
+
+<!-- ══ WAITING ROOM ══ -->
+<div class="screen" id="waiting-screen">
+  <div class="waiting-title">等待室</div>
+  <div class="room-code" id="display-code">----</div>
+  <div class="card" style="display:flex;flex-direction:column;gap:8px">
+    <div class="card-title">玩家 <span id="player-count">1</span>/4</div>
+    <div class="player-list" id="player-list"></div>
+    <div class="waiting-hint pulse" id="waiting-hint">等待其他玩家加入…</div>
+    <button class="btn accent full" id="start-btn" style="display:none" onclick="startGame()">開始遊戲</button>
+    <div class="err-txt" id="wait-err"></div>
+  </div>
+  <button class="btn danger" onclick="leaveRoom()">離開房間</button>
+</div>
+
+<!-- ══ GAME ══ -->
+<div class="screen" id="game-screen">
+  <div class="middle-bar">
+    <div class="center-col">
+      <div class="called-label">叫號</div>
+      <div class="called-num" id="called-num">—</div>
+      <div class="status-txt" id="status">—</div>
+    </div>
+    <div class="scores-strip" id="scores-strip"></div>
+  </div>
+  <div class="board-wrap">
+    <div class="board-label" id="my-label" style="color:var(--accent2)">你</div>
+    <div class="board-canvas-wrap">
+      <canvas class="board-canvas" id="mycanvas"></canvas>
+      <canvas class="line-canvas"  id="mylines-canvas"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title" id="m-title">賓果！</div>
+    <div class="modal-sub"   id="m-sub"></div>
+    <div class="modal-btns">
+      <button class="btn accent" id="rematch-btn" onclick="sendRematch()">再來一局</button>
+      <button class="btn" onclick="leaveRoom()">離開</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+//  Constants
+// ════════════════════════════════════════
+const SIZE = 5, N = 25;
+const LINES = [
+  [0,1,2,3,4],[5,6,7,8,9],[10,11,12,13,14],[15,16,17,18,19],[20,21,22,23,24],
+  [0,5,10,15,20],[1,6,11,16,21],[2,7,12,17,22],[3,8,13,18,23],[4,9,14,19,24],
+  [0,6,12,18,24],[4,8,12,16,20]
+];
+const ROLE_COLORS = { p1:'#ff6b6b', p2:'#4ecdc4', p3:'#f7c948', p4:'#a78bfa' };
+
+// ════════════════════════════════════════
+//  State
+// ════════════════════════════════════════
+let ws = null;
+let myRole = null, myRoom = null, isHost = false;
+let myBoard = [], myMark = Array(N).fill(false);
+let names = {}, roles = [], scores = {}, lines = {};
+let currentTurn = null, gameOver = false;
+let canCall = false, rematchSent = false;
+
+// ════════════════════════════════════════
+//  WebSocket
+// ════════════════════════════════════════
+function connect(cb) {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}`);
+  ws.onopen  = cb;
+  ws.onmessage = e => handleMsg(JSON.parse(e.data));
+  ws.onclose = () => {
+    if (currentScreen() !== 'lobby-screen') {
+      showErr('連線中斷，請重新整理', 'lobby-err');
+      showScreen('lobby-screen');
+    }
+  };
+}
+
+function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+
+// ════════════════════════════════════════
+//  Message handler — client只顯示，不計算
+// ════════════════════════════════════════
+function handleMsg(msg) {
+  switch (msg.type) {
+
+    case 'joined':
+      myRole = msg.role; myRoom = msg.code; isHost = msg.isHost;
+      names  = msg.names || {};
+      document.getElementById('display-code').textContent = msg.code;
+      renderWaitingList(names, msg.players);
+      showScreen('waiting-screen');
+      break;
+
+    case 'room_update':
+      names = msg.names || names;
+      renderWaitingList(names, msg.players);
+      break;
+
+    case 'name_update':
+      names = msg.names || names;
+      renderWaitingList(names, Object.keys(names).length);
+      break;
+
+    case 'error':
+      showErr(msg.msg, currentScreen() === 'waiting-screen' ? 'wait-err' : 'lobby-err');
+      break;
+
+    case 'start':
+      myBoard     = msg.myBoard;
+      myMark      = Array(N).fill(false);  // 全部重設，server 是來源
+      roles       = msg.roles;
+      names       = msg.names;
+      scores      = msg.scores;
+      lines       = Object.fromEntries(roles.map(r => [r, 0]));
+      currentTurn = msg.turn;
+      gameOver    = false; canCall = false; rematchSent = false;
+      document.getElementById('rematch-btn').disabled = false;
+      document.getElementById('modal').classList.remove('show');
+      document.getElementById('my-label').textContent = names[myRole] || myRole.toUpperCase();
+      document.getElementById('my-label').style.color = ROLE_COLORS[myRole] || 'var(--accent2)';
+      updateScoresStrip();
+      renderBoard();
+      renderLines();
+      setStatus();
+      showScreen('game-screen');
+      break;
+
+    case 'update':
+      // 完全以 server 資料為準，client 不自行推算
+      myMark      = msg.marks[myRole];
+      lines       = msg.lines;
+      scores      = msg.scores;
+      names       = msg.names || names;
+      currentTurn = msg.turn;
+      showCalledNum(msg.num);
+      updateScoresStrip();
+      renderBoard();
+      renderLines();
+      if (msg.winner) {
+        gameOver = true; canCall = false;
+        setTimeout(() => showWinModal(msg.winner, msg.lines), 600);
+      } else {
+        setStatus();
+      }
+      break;
+
+    case 'rematch_waiting':
+      document.getElementById('m-sub').textContent =
+        `等待其他玩家…(${msg.ready}/${msg.total})`;
+      document.getElementById('rematch-btn').disabled = true;
+      break;
+
+    case 'player_left':
+      names = msg.names || names;
+      if (currentScreen() === 'game-screen') {
+        gameOver = true; canCall = false;
+        setStatus('有玩家離開，遊戲結束');
+      } else {
+        renderWaitingList(names, msg.remaining);
+        showErr('有玩家離開了房間', 'wait-err');
+      }
+      break;
+  }
+}
+
+// ════════════════════════════════════════
+//  Lobby
+// ════════════════════════════════════════
+function joinRoom() {
+  const code = document.getElementById('room-input').value.trim().toUpperCase();
+  if (!code) { showErr('請輸入房間代碼', 'lobby-err'); return; }
+  showErr('', 'lobby-err');
+  if (ws) ws.close();
+  connect(() => send({ type: 'join', code }));
+}
+
+// ════════════════════════════════════════
+//  Waiting room
+// ════════════════════════════════════════
+function renderWaitingList(namesMap, count) {
+  const list = document.getElementById('player-list');
+  list.innerHTML = '';
+
+  ['p1','p2','p3','p4'].forEach(role => {
+    const row = document.createElement('div');
+    row.className = 'player-row';
+
+    const dot = document.createElement('div');
+    dot.className = `player-dot dot-${role}`;
+    row.appendChild(dot);
+
+    if (namesMap && namesMap[role]) {
+      if (role === myRole) {
+        const inp = document.createElement('input');
+        inp.className   = 'player-name-input';
+        inp.value       = namesMap[role];
+        inp.maxLength   = 10;
+        inp.placeholder = role.toUpperCase();
+        let debounce;
+        inp.oninput = () => {
+          clearTimeout(debounce);
+          debounce = setTimeout(() => send({ type: 'set_name', name: inp.value }), 300);
+        };
+        row.appendChild(inp);
+        const badge = document.createElement('div');
+        badge.className   = 'player-badge';
+        badge.textContent = '你';
+        row.appendChild(badge);
+      } else {
+        const span = document.createElement('div');
+        span.className   = 'player-name-static';
+        span.textContent = namesMap[role];
+        row.appendChild(span);
+      }
+    } else {
+      const span = document.createElement('div');
+      span.className      = 'player-name-static';
+      span.style.color    = 'var(--muted)';
+      span.textContent    = '等待加入…';
+      row.appendChild(span);
+    }
+    list.appendChild(row);
+  });
+
+  document.getElementById('player-count').textContent = count || 0;
+
+  const hint     = document.getElementById('waiting-hint');
+  const startBtn = document.getElementById('start-btn');
+  if (isHost) {
+    startBtn.style.display = 'block';
+    startBtn.disabled      = (count || 0) < 2;
+    hint.textContent       = (count || 0) >= 2 ? '可以開始了！' : '等待至少 1 人加入…';
+    hint.classList.toggle('pulse', (count || 0) < 2);
+  } else {
+    startBtn.style.display = 'none';
+    hint.textContent       = '等待房主開始遊戲…';
+    hint.classList.add('pulse');
+  }
+}
+
+function startGame() { send({ type: 'start_game' }); }
+
+function leaveRoom() {
+  if (ws) { ws.close(); ws = null; }
+  myRole = null; myRoom = null; isHost = false;
+  myBoard = []; myMark = Array(N).fill(false);
+  names = {}; roles = []; scores = {}; lines = {};
+  currentTurn = null; gameOver = false; canCall = false;
+  document.getElementById('room-input').value = '';
+  document.getElementById('modal').classList.remove('show');
+  showErr('', 'lobby-err');
+  showScreen('lobby-screen');
+}
+
+// ════════════════════════════════════════
+//  Game actions
+// ════════════════════════════════════════
+function callNum(num) {
+  if (!canCall || gameOver) return;
+  canCall = false; // 防止重複送，等 server update 回來
+  send({ type: 'call', num });
+}
+
+function sendRematch() {
+  if (rematchSent) return;
+  rematchSent = true;
+  document.getElementById('rematch-btn').disabled = true;
+  send({ type: 'rematch' });
+}
+
+// ════════════════════════════════════════
+//  Canvas
+// ════════════════════════════════════════
+function getCanvasSize() {
+  const byW = Math.min(window.innerWidth - 24, 400);
+  const byH = window.innerHeight - 190;
+  return Math.min(byW, byH, 360);
+}
+
+function setupCanvas(id, css) {
+  const cv  = document.getElementById(id);
+  const dpr = window.devicePixelRatio || 1;
+  cv.style.width  = css + 'px';
+  cv.style.height = css + 'px';
+  cv.width  = Math.round(css * dpr);
+  cv.height = Math.round(css * dpr);
+  const ctx = cv.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return ctx;
+}
+
+function layout(css) {
+  const PAD  = Math.round(css * 0.025);
+  const CELL = Math.floor((css - PAD * 2) / SIZE);
+  return { PAD, CELL };
+}
+
+function cellCenter(idx, css) {
+  const { PAD, CELL } = layout(css);
+  return [
+    PAD + (idx % SIZE) * CELL + CELL / 2,
+    PAD + Math.floor(idx / SIZE) * CELL + CELL / 2
+  ];
+}
+
+function rrect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+  ctx.closePath();
+}
+
+function renderBoard() {
+  const css = getCanvasSize();
+  const ctx = setupCanvas('mycanvas', css);
+  const { PAD, CELL } = layout(css);
+  const color    = ROLE_COLORS[myRole] || '#4ecdc4';
+  const isMyTurn = currentTurn === myRole && !gameOver;
+
+  ctx.fillStyle = '#fffdf7';
+  rrect(ctx, 0, 0, css, css, 10); ctx.fill();
+
+  if (isMyTurn) {
+    ctx.strokeStyle = color; ctx.lineWidth = 3;
+    rrect(ctx, 1.5, 1.5, css-3, css-3, 9); ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#d4c9a8'; ctx.lineWidth = 1;
+  for (let i = 0; i <= SIZE; i++) {
+    ctx.beginPath(); ctx.moveTo(PAD + i*CELL, PAD); ctx.lineTo(PAD + i*CELL, PAD + CELL*SIZE); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PAD, PAD + i*CELL); ctx.lineTo(PAD + CELL*SIZE, PAD + i*CELL); ctx.stroke();
+  }
+
+  const fs = Math.round(CELL * 0.38);
+  for (let i = 0; i < N; i++) {
+    const r = Math.floor(i / SIZE), c = i % SIZE;
+    const x = PAD + c*CELL, y = PAD + r*CELL;
+    if (myMark[i]) {
+      ctx.fillStyle = color + '33';
+      ctx.fillRect(x+1, y+1, CELL-2, CELL-2);
+    }
+    ctx.fillStyle    = myMark[i] ? color : '#3a3020';
+    ctx.font         = `bold ${fs}px "Noto Sans TC",sans-serif`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(myBoard[i], x + CELL/2, y + CELL/2);
+  }
+
+  const cv = document.getElementById('mycanvas');
+  cv.onclick = null;
+  if (isMyTurn) {
+    canCall = true;
+    cv.onclick = e => {
+      if (!canCall || gameOver) return;
+      const rect = cv.getBoundingClientRect();
+      const mx   = (e.clientX - rect.left) * (css / rect.width);
+      const my_  = (e.clientY - rect.top)  * (css / rect.height);
+      const col  = Math.floor((mx - PAD) / CELL);
+      const row  = Math.floor((my_ - PAD) / CELL);
+      if (col < 0 || col >= SIZE || row < 0 || row >= SIZE) return;
+      const idx = row * SIZE + col;
+      if (!myMark[idx]) callNum(myBoard[idx]);
+    };
+  }
+}
+
+function renderLines() {
+  const css   = getCanvasSize();
+  const ctx   = setupCanvas('mylines-canvas', css);
+  const color = ROLE_COLORS[myRole] || '#4ecdc4';
+
+  LINES.forEach(line => {
+    if (!line.every(i => myMark[i])) return;
+    const [x1,y1] = cellCenter(line[0], css);
+    const [x2,y2] = cellCenter(line[4], css);
+    const dx = x2-x1, dy = y2-y1;
+    ctx.save();
+    ctx.strokeStyle = color + 'cc';
+    ctx.lineWidth   = Math.round(css * 0.038);
+    ctx.lineCap     = 'round';
+    ctx.shadowColor = color; ctx.shadowBlur = 6;
+    ctx.beginPath();
+    ctx.moveTo(x1 - dx*.05, y1 - dy*.05);
+    ctx.bezierCurveTo(
+      x1 + dx*.3 + (Math.random()-.5)*3, y1 + dy*.3 + (Math.random()-.5)*3,
+      x1 + dx*.7 + (Math.random()-.5)*3, y1 + dy*.7 + (Math.random()-.5)*3,
+      x2 + dx*.05, y2 + dy*.05
+    );
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+// ════════════════════════════════════════
+//  UI helpers
+// ════════════════════════════════════════
+function updateScoresStrip() {
+  const strip = document.getElementById('scores-strip');
+  strip.innerHTML = '';
+  (roles.length ? roles : (myRole ? [myRole] : [])).forEach(role => {
+    const color = ROLE_COLORS[role] || '#aaa';
+    const chip  = document.createElement('div');
+    chip.className = 'score-chip' + (role === currentTurn ? ' is-turn' : '');
+    chip.innerHTML =
+      `<div class="chip-name" style="color:${color}">${names[role] || role.toUpperCase()}</div>` +
+      `<div class="chip-lines" style="color:${color}">${lines[role] ?? 0}<span class="chip-unit"> 條</span></div>` +
+      `<div class="chip-score">勝 ${scores[role] ?? 0}</div>`;
+    strip.appendChild(chip);
+  });
+}
+
+function showCalledNum(num) {
+  const el = document.getElementById('called-num');
+  el.style.transform = 'scale(1.4)';
+  el.textContent = num;
+  setTimeout(() => el.style.transform = 'scale(1)', 200);
+}
+
+function setStatus(msg) {
+  const el = document.getElementById('status');
+  if (msg) { el.textContent = msg; return; }
+  if (gameOver) { el.textContent = '遊戲結束'; return; }
+  if (currentTurn === myRole) {
+    el.textContent = '點選你的號碼';
+  } else {
+    el.textContent = `等待 ${names[currentTurn] || currentTurn || '—'}…`;
+  }
+}
+
+function showWinModal(winner, linesMap) {
+  let title, sub;
+  const isWinner = Array.isArray(winner) && winner.includes(myRole);
+  if (winner === 'draw') {
+    title = '平局！'; sub = '所有人同時完成 5 條';
+  } else if (isWinner) {
+    title = '你贏了！';
+    sub   = winner.map(r => `${names[r] || r.toUpperCase()} 完成 ${linesMap[r]} 條`).join('\n');
+  } else {
+    title = '你輸了';
+    const w = Array.isArray(winner) ? winner : [winner];
+    sub   = w.map(r => `${names[r] || r.toUpperCase()} 完成 ${linesMap[r]} 條`).join('\n');
+  }
+  document.getElementById('m-title').textContent = title;
+  document.getElementById('m-sub').textContent   = sub;
+  setTimeout(() => document.getElementById('modal').classList.add('show'), 100);
+}
+
+function showErr(msg, id) { const el = document.getElementById(id); if (el) el.textContent = msg; }
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function currentScreen() {
+  const s = document.querySelector('.screen.active');
+  return s ? s.id : null;
+}
+
+window.addEventListener('resize', () => {
+  if (currentScreen() === 'game-screen') { renderBoard(); renderLines(); }
+});
+</script>
+</body>
+</html>
